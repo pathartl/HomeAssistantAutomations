@@ -11,8 +11,6 @@ namespace NetDaemonApps.Automations.Downstairs
     [NetDaemonApp]
     public class Humidifier : HomeAssistantAutomation
     {
-        public static readonly string HumidifierEmptyNotificationTag = "downstairs-humidifier-empty";
-
         public Humidifier(IHaContext context, IScheduler scheduler, IMqttEntityManager entityManager, ITextToSpeechService tts) : base(context, scheduler, entityManager, tts)
         {
         }
@@ -34,8 +32,7 @@ namespace NetDaemonApps.Automations.Downstairs
                         Data = new PushNotificationData()
                         {
                             TTL = 0,
-                            Priority = PushNotificationPriority.High,
-                            Tag = HumidifierEmptyNotificationTag
+                            Priority = PushNotificationPriority.High
                         }
                     });
                 });
