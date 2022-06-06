@@ -37,7 +37,7 @@ namespace NetDaemonApps
         public IList<string> NotificationImages;
         public string? SunsetStartColor;
         public string? SunsetEndColor;
-        public int SunsetColorTransitionDelayMinutes;
+        public int SunsetDelayMinutes;
         public int SunsetColorTransitionMinutes;
         public int SunsetBrightnessTransitionMinutes;
     }

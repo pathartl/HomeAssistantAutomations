@@ -10,9 +10,21 @@ using System.Threading.Tasks;
 
 namespace NetDaemonApps.Automations.Bedroom
 {
+    public static class SunsetState
+    {
+        public const string Daylight = "Daylight";
+        public const string Sunset = "Sunset";
+        public const string Twilight = "Twilight";
+        public const string Night = "Night";
+    }
+
     [NetDaemonApp]
     public class SleepyTime : HomeAssistantAutomation
     {
+        private IDisposable DaylightSchedule;
+        private IDisposable SunsetSchedule;
+        private IDisposable TwilightSchedule;
+
         public SleepyTime(IHaContext context, IScheduler scheduler, IMqttEntityManager entityManager, ITextToSpeechService tts) : base(context, scheduler, entityManager, tts)
         {
         }
@@ -27,14 +39,6 @@ namespace NetDaemonApps.Automations.Bedroom
                 icon = "mdi:sleep"
             });
 
-            await EntityManager.CreateAsync("switch.sleepytime_tuck_tuck_weekend", new EntityCreationOptions()
-            {
-                Name = "Tuck-Tuck On Weekends",
-            }, new
-            {
-                icon = "mdi:bed"
-            });
-
             await EntityManager.CreateAsync("sensor.sleepytime_status", new EntityCreationOptions()
             {
                 Name = "Sleepy Time Status"
@@ -45,29 +49,37 @@ namespace NetDaemonApps.Automations.Bedroom
                 {
                     if (s.New?.State != s.Old?.State)
                     {
+                        try { DaylightSchedule.Dispose(); } catch { }
+                        try { SunsetSchedule.Dispose(); } catch { }
+                        try { TwilightSchedule.Dispose(); } catch { }
+
                         switch (s.New?.State)
                         {
-                            case "On":
+                            case SunsetState.Daylight:
                                 TurnOffLights();
                                 TurnOnNightstandLamp();
                                 Scheduler.Schedule(TimeSpan.FromSeconds(18), StartPlaylist);
 
-                                Scheduler.Schedule(TimeSpan.FromMinutes(Config.SleepyTime.SunsetColorTransitionDelayMinutes), () =>
+                                DaylightSchedule = Scheduler.Schedule(TimeSpan.FromMinutes(Entities.InputNumber.SleepytimeDaylightMinutes.State.GetValueOrDefault()), async () =>
                                 {
-                                    EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, "Sunset");
+                                    await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, SunsetState.Sunset);
                                 });
                                 break;
 
-                            case "Sunset":
+                            case SunsetState.Sunset:
                                 await StartNightstandSunsetTransition();
                                 break;
 
-                            case "Darken":
-                                await StartNightstandDarkenTransition();
+                            case SunsetState.Twilight:
+                                await StartNightstandTwilightTransition();
                                 break;
 
-                            case "Off":
+                            case SunsetState.Night:
                                 NotifyPat();
+
+                                if (Entities.Light.NightstandRgbLamp.IsOn())
+                                    Entities.Light.NightstandRgbLamp.TurnOff();
+
                                 Entities.InputBoolean.SleepytimeEnabled.TurnOff();
                                 break;
                         }
@@ -76,13 +88,38 @@ namespace NetDaemonApps.Automations.Bedroom
 
             Entities.Button.StartSleepytime.OnPress(async () =>
             {
-                await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, "On");
+                switch (Entities.Sensor.SleepytimeStatus.State)
+                {
+                    case SunsetState.Night:
+                    default:
+                        await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, SunsetState.Daylight);
+                        break;
+
+                    case SunsetState.Daylight:
+                        await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, SunsetState.Sunset);
+                        break;
+
+                    case SunsetState.Sunset:
+                        await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, SunsetState.Twilight);
+                        break;
+
+                    case SunsetState.Twilight:
+                        await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, SunsetState.Night);
+                        break;
+                }
             });
 
             Notifications.OnAction("start-sleepy-time", (e) =>
             {
                 Entities.Button.StartSleepytime.Press();
             });
+
+            Entities.Sensor.SleepyTimeButtonAction.StateChanges()
+                .Subscribe(s =>
+                {
+                    if (s.New?.State == "on")
+                        Entities.Button.StartSleepytime.Press();
+                });
 
             Scheduler.ScheduleCron($"* * * * *", () =>
             {
@@ -96,7 +133,7 @@ namespace NetDaemonApps.Automations.Bedroom
                 if (now.Minute == time.Minute && now.Hour == time.Hour)
                 {
                     // Skip on weekends if sleepy time weekend is off
-                    if (Entities.InputBoolean.SleepytimeTuckTuckWeekend.IsOff() && (now.DayOfWeek == DayOfWeek.Saturday || now.DayOfWeek == DayOfWeek.Sunday))
+                    if (Entities.InputBoolean.SleepytimeNotifyWeekend.IsOff() && (now.DayOfWeek == DayOfWeek.Saturday || now.DayOfWeek == DayOfWeek.Sunday))
                     {
                         return;
                     }
@@ -141,6 +178,7 @@ namespace NetDaemonApps.Automations.Bedroom
             Entities.Light.MasterBedroomBathroomLights.TurnOff(20);
             Entities.Light.MasterBedroomClosetLights.TurnOff(20);
             Entities.Light.MasterBedroomLights.TurnOff(20);
+            Entities.Light.MasterBathOverheadLight.TurnOff(20);
         }
 
         private void TurnOnNightstandLamp()
@@ -148,7 +186,7 @@ namespace NetDaemonApps.Automations.Bedroom
             Entities.Light.NightstandRgbLamp.TurnOn(new LightTurnOnParameters()
             {
                 ColorTemp = 500,
-                Brightness = 255,
+                BrightnessPct = (long)Entities.InputNumber.SleepytimeMaxBrightness.State.GetValueOrDefault(),
                 Transition = 30
             });
         }
@@ -157,22 +195,26 @@ namespace NetDaemonApps.Automations.Bedroom
         {
             var startingColor = new Color(Config.SleepyTime.SunsetStartColor).HexToRGB();
             var endingColor = new Color(Config.SleepyTime.SunsetEndColor).HexToRGB();
+            var duration = Entities.InputNumber.SleepytimeSunsetMinutes.State.GetValueOrDefault();
+            var brightness = (int)((Entities.InputNumber.SleepytimeMaxBrightness.State.GetValueOrDefault() / 100) * 255);
 
-            await Entities.Light.NightstandRgbLamp.TransitionColors(startingColor, endingColor, TimeSpan.FromMinutes(Config.SleepyTime.SunsetColorTransitionMinutes));
+            await Entities.Light.NightstandRgbLamp.TransitionColors(startingColor, endingColor, TimeSpan.FromMinutes(duration), brightness, brightness);
 
-            Scheduler.Schedule(TimeSpan.FromMinutes(Config.SleepyTime.SunsetColorTransitionMinutes), async () =>
+            SunsetSchedule = Scheduler.Schedule(TimeSpan.FromMinutes(duration), async () =>
             {
-                await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, "Darken");
+                await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, SunsetState.Twilight);
             });
         }
 
-        private async Task StartNightstandDarkenTransition()
+        private async Task StartNightstandTwilightTransition()
         {
-            await Entities.Light.NightstandRgbLamp.TransitionBrightness(0, TimeSpan.FromMinutes(Config.SleepyTime.SunsetBrightnessTransitionMinutes));
+            var duration = Entities.InputNumber.SleepytimeTwilightMinutes.State.GetValueOrDefault();
 
-            Scheduler.Schedule(TimeSpan.FromMinutes(Config.SleepyTime.SunsetBrightnessTransitionMinutes), async () =>
+            await Entities.Light.NightstandRgbLamp.TransitionBrightness(0, TimeSpan.FromMinutes(duration));
+
+            TwilightSchedule = Scheduler.Schedule(TimeSpan.FromMinutes(duration), async () =>
             {
-                await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, "Off");
+                await EntityManager.SetStateAsync(Entities.Sensor.SleepytimeStatus.EntityId, SunsetState.Night);
             });
         }
 
