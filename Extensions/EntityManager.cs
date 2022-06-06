@@ -8,13 +8,24 @@ namespace NetDaemonApps.Extensions
 {
     public static class EntityManagerExtensions
     {
+        public static async Task CreateAsync(this IMqttEntityManager entityManager, string entityId, string name, string icon)
+        {
+            await entityManager.CreateAsync(entityId, new EntityCreationOptions()
+            {
+                Name = name,
+            }, new {
+                Icon = icon,
+            });
+        }
+
         public static async Task CreateAsync(this IMqttEntityManager entityManager, string entityId, string name, string icon, string deviceClass)
         {
             await entityManager.CreateAsync(entityId, new EntityCreationOptions()
             {
                 DeviceClass = deviceClass,
                 Name = name,
-            }, new {
+            }, new
+            {
                 Icon = icon,
             });
         }
