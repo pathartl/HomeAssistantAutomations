@@ -54,6 +54,16 @@ namespace NetDaemonApps.Automations.Entry
                     s.Entity.Lock();
                 });
 
+            Entities.Lock.FrontDoor
+                .StateChanges()
+                .Subscribe(s =>
+                {
+                    if (s.New?.State == LockState.Unlocked)
+                    {
+                        Entities.Light.EntryLights.TurnOn();
+                    }
+                });
+
             Notifications.OnAction(UnlockDoorActionName).Subscribe(s =>
             {
                 Services.Lock.Unlock(ServiceTarget.FromEntity(Entities.Lock.FrontDoor.EntityId));
