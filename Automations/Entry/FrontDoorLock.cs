@@ -11,7 +11,6 @@ namespace NetDaemonApps.Automations.Entry
     [NetDaemonApp]
     public class FrontDoorLock : HomeAssistantAutomation
     {
-        public static readonly string DoorLeftUnlockedTag = "door-left-unlocked";
         public static readonly string LockDoorActionName = "LOCK_DOOR";
         public static readonly string UnlockDoorActionName = "UNLOCK_DOOR";
         public static readonly int NotificationTimeout = 5;
@@ -37,7 +36,6 @@ namespace NetDaemonApps.Automations.Entry
                         {
                             TTL = 0,
                             Priority = PushNotificationPriority.High,
-                            Tag = DoorLeftUnlockedTag,
                             Actions = new PushNotificationAction[]
                             {
                                 new PushNotificationAction(LockDoorActionName, "Lock Door")
@@ -51,7 +49,7 @@ namespace NetDaemonApps.Automations.Entry
                 .WhenStateIsFor(s => s?.State == LockState.Unlocked, TimeSpan.FromMinutes(AutoLockTimeout))
                 .Subscribe(s =>
                 {
-                    Notifications.ClearPushNotification(LockDoorActionName, MobileApp.PatPhone, MobileApp.SierraPhone);
+                    Notifications.ClearPushNotification(LockDoorActionName);
 
                     s.Entity.Lock();
                 });
@@ -65,7 +63,7 @@ namespace NetDaemonApps.Automations.Entry
             {
                 Services.Lock.Lock(ServiceTarget.FromEntity(Entities.Lock.FrontDoor.EntityId));
 
-                Notifications.ClearPushNotification(DoorLeftUnlockedTag, MobileApp.PatPhone, MobileApp.SierraPhone);
+                Notifications.ClearPushNotification("DoorUnlocked");
             });
         }
     }
