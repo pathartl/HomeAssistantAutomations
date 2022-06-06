@@ -16,17 +16,17 @@ namespace NetDaemonApps.Automations.Downstairs
         public override void Init()
         {
             Entities.MediaPlayer.LivingRoomTv
-                .StateChanges()
+                .StateAllChanges()
                 .Subscribe(s =>
                 {
                     switch (s.New?.State)
                     {
-                        case "Playing":
+                        case "playing":
                             Entities.Fan.AirPurifier.TurnOff();
                             break;
 
-                        case "Idle":
-                        case "Paused":
+                        case "idle":
+                        case "paused":
                         case "off":
                             Entities.Fan.AirPurifier.TurnOn();
                             Entities.Fan.AirPurifier.SetPresetMode("auto");
