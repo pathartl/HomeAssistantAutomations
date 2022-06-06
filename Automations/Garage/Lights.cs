@@ -30,13 +30,13 @@ namespace NetDaemonApps.Automations.Garage
             {
                 switch (Entities.MediaPlayer.Treadmill.State)
                 {
-                    case "Playing":
-                    case "Paused":
+                    case "playing":
+                    case "paused":
                         // Reschedule, someone's using the treadmill
                         ScheduleOffIn10Minutes();
                         break;
 
-                    case "Idle":
+                    case "idle":
                     case "off":
                         Entities.Switch.GarageLights.TurnOff();
                         break;
