@@ -11,8 +11,6 @@ namespace NetDaemonApps.Automations.Laundry
     [NetDaemonApp]
     public class Washer : HomeAssistantAutomation
     {
-        public static readonly string CycleCompleteNotificationTag = "washing-machine-cycle-complete";
-
         public Washer(IHaContext context, IScheduler scheduler, IMqttEntityManager entityManager, ITextToSpeechService tts) : base(context, scheduler, entityManager, tts)
         {
         }
@@ -24,7 +22,7 @@ namespace NetDaemonApps.Automations.Laundry
                 .Where(s => s.New?.State == "on")
                 .Subscribe(e =>
                 {
-                    Notifications.ClearPushNotification(CycleCompleteNotificationTag, MobileApp.PatPhone, MobileApp.SierraPhone);
+                    Notifications.ClearPushNotification("WasherComplete");
 
                     Notifications.SendPushNotification(new PushNotification()
                     {
@@ -34,10 +32,9 @@ namespace NetDaemonApps.Automations.Laundry
                         Data = new PushNotificationData()
                         {
                             TTL = 0,
-                            Priority = PushNotificationPriority.High,
-                            Tag = CycleCompleteNotificationTag
+                            Priority = PushNotificationPriority.High
                         }
-                    }, MobileApp.PatPhone, MobileApp.SierraPhone);
+                    });
                 });
 
             Entities.BinarySensor.WasherCycleComplete
@@ -45,7 +42,7 @@ namespace NetDaemonApps.Automations.Laundry
                 .WhenStateIsFor(s => s?.State == "on", TimeSpan.FromHours(1))
                 .Subscribe(e =>
                 {
-                    Notifications.ClearPushNotification(CycleCompleteNotificationTag, MobileApp.PatPhone, MobileApp.SierraPhone);
+                    Notifications.ClearPushNotification("WasherComplete");
 
                     Notifications.SendPushNotification(new PushNotification()
                     {
@@ -55,8 +52,7 @@ namespace NetDaemonApps.Automations.Laundry
                         Data = new PushNotificationData()
                         {
                             TTL = 0,
-                            Priority = PushNotificationPriority.High,
-                            Tag = CycleCompleteNotificationTag
+                            Priority = PushNotificationPriority.High
                         }
                     });
                 });

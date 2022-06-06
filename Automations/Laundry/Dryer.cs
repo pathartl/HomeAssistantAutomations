@@ -11,7 +11,8 @@ namespace NetDaemonApps.Automations.Laundry
     [NetDaemonApp]
     public class Dryer : HomeAssistantAutomation
     {
-        public static readonly string CycleCompleteNotificationTag = "dryer-complete";
+        private bool DryerIdleValid = true;
+        private IDisposable DryerIdleCompleteSubscription;
 
         public Dryer(IHaContext context, IScheduler scheduler, IMqttEntityManager entityManager, ITextToSpeechService tts) : base(context, scheduler, entityManager, tts)
         {
@@ -21,24 +22,42 @@ namespace NetDaemonApps.Automations.Laundry
         {
             Entities.Sensor.DryerStatus
                 .StateAllChanges()
-                .WhenStateIsFor(s => s?.State == "Idle", TimeSpan.FromMinutes(1))
+                .WhenStateIsFor(s => s?.State == "Running", TimeSpan.FromSeconds(30))
                 .Subscribe(s =>
                 {
-                    Notifications.ClearPushNotification(CycleCompleteNotificationTag, MobileApp.PatPhone, MobileApp.SierraPhone);
-
-                    Notifications.SendPushNotification(new PushNotification()
-                    {
-                        Title = "Dryer Done!",
-                        Message = Config.Laundry.DryerCompleteMessages.RandomElementByWeight(m => m.Weight).Message,
-                        Tag = "DryerComplete",
-                        Data = new PushNotificationData()
+                    DryerIdleCompleteSubscription = Entities.Sensor.DryerStatus
+                        .StateAllChanges()
+                        .WhenStateIsFor(s => s?.State == "Idle", TimeSpan.FromMinutes(1))
+                        .Subscribe(s =>
                         {
-                            TTL = 0,
-                            Priority = PushNotificationPriority.High,
-                            Tag = CycleCompleteNotificationTag
-                        }
-                    });
+                            Notifications.ClearPushNotification("DryerComplete");
+
+                            Notifications.SendPushNotification(new PushNotification()
+                            {
+                                Title = "Dryer Done!",
+                                Message = Config.Laundry.DryerCompleteMessages.RandomElementByWeight(m => m.Weight).Message,
+                                Tag = "DryerComplete",
+                                Data = new PushNotificationData()
+                                {
+                                    TTL = 0,
+                                    Priority = PushNotificationPriority.High
+                                }
+                            });
+                        });
+                });
+
+            Entities.Sensor.DryerStatus
+                .StateAllChanges()
+                .Subscribe(s =>
+                {
+                    if (DryerIdleCompleteSubscription != null && s.New?.State == "Running")
+                    {
+                        DryerIdleCompleteSubscription.Dispose();
+                    }
+
                 });
         }
+
+
     }
 }
