@@ -39,18 +39,11 @@ namespace NetDaemonApps.Extensions
 
         public static async Task TransitionBrightness(this LightEntity light, int to, TimeSpan duration)
         {
-            if (to == 0)
+            light.TurnOn(new LightTurnOnParameters()
             {
-                light.TurnOff(duration.Seconds);
-            }
-            else
-            {
-                light.TurnOn(new LightTurnOnParameters()
-                {
-                    Brightness = to,
-                    Transition = (int)duration.TotalSeconds
-                });
-            }
+                Brightness = to,
+                Transition = (int)duration.TotalSeconds
+            });
         }
 
         public static async Task TransitionBrightness(this LightEntity light, int to, int steps, TimeSpan duration)
