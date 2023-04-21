@@ -70,9 +70,9 @@ namespace NetDaemonApps.Automations.Downstairs
                                 TurnOnDaylight();
 
                                 // Check if TV is on, turn it off if nobody's watching anything
-                                if (Entities.Remote.HarmonyHub.IsOn() && Entities.MediaPlayer.LivingRoomTv.State == "Idle")
+                                if (Entities.Remote.LivingRoomRemote.IsOn() && Entities.MediaPlayer.LivingRoomTv.State == "Idle")
                                 {
-                                    Entities.Remote.HarmonyHub.TurnOff();
+                                    Entities.Remote.LivingRoomRemote.TurnOff();
                                 }
 
                                 // Schedule sunset state change after daylight is complete

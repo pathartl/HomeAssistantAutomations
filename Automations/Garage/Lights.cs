@@ -15,7 +15,7 @@ namespace NetDaemonApps.Automations.Garage
 
         public override void Init()
         {
-            Entities.Switch.GarageLights
+            Entities.Switch.WallMountedSwitch
                 .StateChanges()
                 .Where(s => s.New?.State == "on")
                 .Subscribe(s =>
@@ -38,7 +38,7 @@ namespace NetDaemonApps.Automations.Garage
 
                     case "idle":
                     case "off":
-                        Entities.Switch.GarageLights.TurnOff();
+                        Entities.Switch.WallMountedSwitch.TurnOff();
                         break;
                 }
             });
