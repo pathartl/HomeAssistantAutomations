@@ -43,6 +43,33 @@ namespace NetDaemonApps.Automations.Downstairs
                         }
                     }
                 });
+
+            Entities.Remote.LivingRoomRemote
+                .StateAllChanges()
+                .Where(e => e.New?.Attributes?.CurrentActivity != e.Old?.Attributes?.CurrentActivity)
+                .Subscribe(s =>
+                {
+                    Logger.Info("Harmony remote changed activity to {CurrentActivity}", s.New?.Attributes?.CurrentActivity);
+
+                    switch (s.New?.Attributes?.CurrentActivity)
+                    {
+                        case "Patflix":
+                            Entities.Button.TvUsbSwitchHost1.Press();
+                            break;
+
+                        case "Steam Deck":
+                            Entities.Button.TvUsbSwitchHost2.Press();
+                            break;
+
+                        case "Xbox One X":
+                            Entities.Button.TvUsbSwitchHost3.Press();
+                            break;
+
+                        case "Gaming PC":
+                            Entities.Button.TvUsbSwitchHost4.Press();
+                            break;
+                    }
+                });
         }
     }
 }
