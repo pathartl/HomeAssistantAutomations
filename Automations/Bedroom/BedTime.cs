@@ -20,6 +20,7 @@ namespace NetDaemonApps.Automations.Bedroom
         public override async void Init()
         {
             Entities.MediaPlayer.MasterBathSpeaker.StateAllChanges()
+                .Where(s => s.Old?.Attributes?.AppName != s.New?.Attributes?.AppName)
                 .Subscribe(async s =>
                 {
                     Logger.Info("Master bath speaker state changed to {State}", s.Entity.Attributes?.AppName);
