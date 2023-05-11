@@ -20,6 +20,7 @@ namespace NetDaemonApps.Automations.Entry
                 .WhenStateIsFor(s => s?.State == "on", TimeSpan.FromMinutes(Config.Entry.LightsAutoOffMinutes))
                 .Subscribe(e =>
                 {
+                    Logger.Info($"Entry lights have been on for {Config.Entry.LightsAutoOffMinutes}, turning off automatically");
                     Entities.Light.EntryLights.TurnOff();
                 });
         }

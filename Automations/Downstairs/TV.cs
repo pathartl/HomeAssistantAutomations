@@ -16,16 +16,31 @@ namespace NetDaemonApps.Automations.Downstairs
 
         public override void Init()
         {
-            Entities.MediaPlayer.LivingRoomTv.StateAllChanges()
+            Entities.MediaPlayer.LivingRoomTv
+                .StateAllChanges()
+                .Where(e => e.New?.Attributes?.MediaContentType != e.Old?.Attributes?.MediaContentType || e.New?.Attributes?.AppName != e.Old?.Attributes?.AppName)
                 .Subscribe(s =>
                 {
-                    if (s.Old?.Attributes?.MediaContentType != s.New?.Attributes?.MediaContentType && s.New?.Attributes?.MediaContentType == "music")
+                    bool mediaContentChanged = s.Old?.Attributes?.MediaContentType != s.New?.Attributes?.MediaContentType;
+                    var mediaContentType = s.New?.Attributes?.MediaContentType;
+
+                    bool appChanged = s.Old?.Attributes?.AppName != s.New?.Attributes?.AppName;
+                    var appName = s.New?.Attributes?.AppName;
+
+                    Logger.Info("TV state changed | MediaContentType: {MediaContentType} | AppName: {AppName}", mediaContentType, appName);
+
+                    if (mediaContentChanged || appChanged)
                     {
-                        Services.MediaPlayer.SelectSoundMode(ServiceTarget.FromEntity(Entities.MediaPlayer.Receiver.EntityId), "7ch Stereo");
-                    }
-                    else if (s.Old?.Attributes?.MediaContentType != s.New?.Attributes?.MediaContentType)
-                    {
-                        Services.MediaPlayer.SelectSoundMode(ServiceTarget.FromEntity(Entities.MediaPlayer.Receiver.EntityId), "Surround Decoder");
+                        if (appName == "Spotify" || mediaContentType == "music")
+                        {
+                            Logger.Info("Music is playing, changing to 7 channel stereo...");
+                            Services.MediaPlayer.SelectSoundMode(ServiceTarget.FromEntity(Entities.MediaPlayer.Receiver.EntityId), "7ch Stereo");
+                        }
+                        else if (mediaContentChanged || appChanged)
+                        {
+                            Logger.Info("Changing receiver to default surround preset...");
+                            Services.MediaPlayer.SelectSoundMode(ServiceTarget.FromEntity(Entities.MediaPlayer.Receiver.EntityId), "Surround Decoder");
+                        }
                     }
                 });
         }

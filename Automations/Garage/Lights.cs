@@ -26,18 +26,24 @@ namespace NetDaemonApps.Automations.Garage
 
         private void ScheduleOffIn10Minutes()
         {
+            Logger.Info("Scheduling garage lights to turn off at {ScheduledDate}", DateTime.Now.AddMinutes(10));
+
             Scheduler.Schedule(TimeSpan.FromMinutes(10), () =>
             {
-                switch (Entities.MediaPlayer.Treadmill.State)
+                //switch (Entities.MediaPlayer.Treadmill.State)
+                switch ("")
                 {
                     case "playing":
                     case "paused":
                         // Reschedule, someone's using the treadmill
+                        Logger.Info("Rescheduling garage lights, the treadmill is playing media");
                         ScheduleOffIn10Minutes();
                         break;
 
                     case "idle":
                     case "off":
+                    default:
+                        Logger.Info("Turning off garage lights");
                         Entities.Switch.WallMountedSwitch.TurnOff();
                         break;
                 }

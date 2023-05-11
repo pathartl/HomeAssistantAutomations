@@ -63,6 +63,8 @@ namespace NetDaemonApps.Automations.Downstairs
                         try { SunsetSchedule.Dispose(); } catch { }
                         try { TwilightSchedule.Dispose(); } catch { }
 
+                        Logger.Info("Cozy sunset state changed to {State}", s.New?.State);
+
                         switch (s.New?.State)
                         {
                             case SunsetState.Daylight:
@@ -72,12 +74,14 @@ namespace NetDaemonApps.Automations.Downstairs
                                 // Check if TV is on, turn it off if nobody's watching anything
                                 if (Entities.Remote.LivingRoomRemote.IsOn() && Entities.MediaPlayer.LivingRoomTv.State == "Idle")
                                 {
+                                    Logger.Info("Nobody is watching TV, turning it off...");
                                     Entities.Remote.LivingRoomRemote.TurnOff();
                                 }
 
                                 // Schedule sunset state change after daylight is complete
                                 DaylightSchedule = Scheduler.Schedule(TimeSpan.FromMinutes(Entities.InputNumber.CozyDaylightMinutes.State.GetValueOrDefault()), () =>
                                 {
+                                    Logger.Info("Changing cozy sunset status to {State}", SunsetState.Sunset);
                                     EntityManager.SetStateAsync(Entities.Sensor.CozySunsetStatus.EntityId, SunsetState.Sunset);
                                 });
                                 break;
@@ -91,6 +95,7 @@ namespace NetDaemonApps.Automations.Downstairs
                                 break;
 
                             case SunsetState.Night:
+                                Logger.Info("Status set to night, end of execution");
                                 break;
                         }
                     }
@@ -98,22 +103,28 @@ namespace NetDaemonApps.Automations.Downstairs
 
             Entities.Button.StartCozySunset.OnPress(async () =>
             {
+                Logger.Info("Cozy sunset started, status is {State}", Entities.Sensor.CozySunsetStatus.State);
+
                 switch (Entities.Sensor.CozySunsetStatus.State)
                 {
                     case SunsetState.Night:
                     default:
+                        Logger.Info("Changing cozy sunset status to {State}", SunsetState.Daylight);
                         await EntityManager.SetStateAsync(Entities.Sensor.CozySunsetStatus.EntityId, SunsetState.Daylight);
                         break;
 
                     case SunsetState.Daylight:
+                        Logger.Info("Changing cozy sunset status to {State}", SunsetState.Sunset);
                         await EntityManager.SetStateAsync(Entities.Sensor.CozySunsetStatus.EntityId, SunsetState.Sunset);
                         break;
 
                     case SunsetState.Sunset:
+                        Logger.Info("Changing cozy sunset status to {State}", SunsetState.Twilight);
                         await EntityManager.SetStateAsync(Entities.Sensor.CozySunsetStatus.EntityId, SunsetState.Twilight);
                         break;
 
                     case SunsetState.Twilight:
+                        Logger.Info("Changing cozy sunset status to {State}", SunsetState.Night);
                         await EntityManager.SetStateAsync(Entities.Sensor.CozySunsetStatus.EntityId, SunsetState.Night);
                         break;
                 }
@@ -122,6 +133,8 @@ namespace NetDaemonApps.Automations.Downstairs
 
         private void TurnOffLights()
         {
+            Logger.Info("Turning off the downstairs lights...");
+
             Entities.Switch.KitchenOverheadLights.TurnOff();
             Entities.Light.KitchenOfficeLights.TransitionBrightness(0, TimeSpan.FromSeconds(30));
             Entities.Light.KitchenLights.TransitionBrightness(0, TimeSpan.FromSeconds(30));
@@ -131,6 +144,8 @@ namespace NetDaemonApps.Automations.Downstairs
 
         private void TurnOnDaylight()
         {
+            Logger.Info("Setting the reading lamp to daylight...");
+
             Entities.Light.CozyCornerReadingLamp.TurnOn(new LightTurnOnParameters()
             {
                 ColorTemp = 500,
@@ -141,6 +156,8 @@ namespace NetDaemonApps.Automations.Downstairs
 
         private async Task StartSunsetTransition()
         {
+            Logger.Info("Starting sunset transition...");
+
             // Refactor to separate config
             var startingColor = new Color(Config.SleepyTime.SunsetStartColor).HexToRGB();
             var endingColor = new Color(Config.SleepyTime.SunsetEndColor).HexToRGB();
@@ -150,18 +167,22 @@ namespace NetDaemonApps.Automations.Downstairs
 
             SunsetSchedule = Scheduler.Schedule(duration, async () =>
             {
+                Logger.Info("Changing cozy sunset status to {State}", SunsetState.Twilight);
                 await EntityManager.SetStateAsync(Entities.Sensor.CozySunsetStatus.EntityId, SunsetState.Twilight);
             });
         }
 
         private async Task StartTwilightTransition()
         {
+            Logger.Info("Starting twilight transition...");
+
             var duration = TimeSpan.FromMinutes(Entities.InputNumber.CozyTwilightMinutes.State.GetValueOrDefault());
 
             await Entities.Light.CozyCornerReadingLamp.TransitionBrightness(0, duration);
 
             TwilightSchedule = Scheduler.Schedule(duration, async () =>
             {
+                Logger.Info("Changing cozy sunset status to {State}", SunsetState.Night);
                 await EntityManager.SetStateAsync(Entities.Sensor.CozySunsetStatus.EntityId, SunsetState.Night);
             });
         }

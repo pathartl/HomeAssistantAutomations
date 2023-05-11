@@ -22,8 +22,12 @@ namespace NetDaemonApps.Automations.Entry
                 .Where(s => s.New?.State == "on")
                 .Subscribe(e =>
                 {
+                    Logger.Info("Doorbell state changed to '{State}'", e.New?.State);
+
+                    Logger.Info("Turning on entry lights...");
                     Entities.Light.EntryLights.CallService("turn_on");
 
+                    Logger.Info("Sending notification...");
                     Notifications.SendPushNotification(new PushNotification()
                     {
                         Title = "Ding Dong!",

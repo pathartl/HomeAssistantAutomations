@@ -10,6 +10,8 @@ namespace NetDaemonApps.Extensions
 {
     public static class LightExtensions
     {
+        private static NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+
         public static async Task TransitionColors(this LightEntity light, Color from, Color to, TimeSpan duration, int fromBrightness = 255, int toBrightness = 255)
         {
             light.TurnOn(new LightTurnOnParameters()

@@ -23,6 +23,8 @@ namespace NetDaemonApps.Automations.Office
                 {
                     if (s.New?.State == "off" && s.Old?.State == "on")
                     {
+                        Logger.Info("Print job has finished, sending notification...");
+
                         Notifications.SendPushNotification(new PushNotification()
                         {
                             Title = "Print Done!",

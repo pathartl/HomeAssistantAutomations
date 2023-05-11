@@ -1,4 +1,5 @@
 ﻿using NetDaemon.Extensions.Tts;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,6 +22,13 @@ namespace NetDaemonApps
         public Entities Entities { get; set; }
         public Services Services { get; set; }
         public Notifications Notifications { get; set; }
+
+        public Logger Logger
+        {
+            get { return _logger ?? (_logger = LogManager.GetLogger(this.GetType().FullName)); }
+        }
+
+        private Logger _logger;
 
         public HomeAssistantAutomation(
             IHaContext context,

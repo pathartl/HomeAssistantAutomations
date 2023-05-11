@@ -27,6 +27,7 @@ namespace NetDaemonApps.Automations.Entry
                 .WhenStateIsFor(s => s?.State == LockState.Unlocked, TimeSpan.FromMinutes(NotificationTimeout))
                 .Subscribe(s =>
                 {
+                    Logger.Info($"Front door has been unlocked for {NotificationTimeout} minutes, sending notification...");
                     Notifications.SendPushNotification(new PushNotification()
                     {
                         Title = "Door Unlocked!",
@@ -49,6 +50,8 @@ namespace NetDaemonApps.Automations.Entry
                 .WhenStateIsFor(s => s?.State == LockState.Unlocked, TimeSpan.FromMinutes(AutoLockTimeout))
                 .Subscribe(s =>
                 {
+                    Logger.Info("Front door has been unlocked too long, automatically locking...");
+
                     Notifications.ClearPushNotification(LockDoorActionName);
 
                     s.Entity.Lock();
@@ -60,17 +63,20 @@ namespace NetDaemonApps.Automations.Entry
                 {
                     if (s.New?.State == LockState.Unlocked)
                     {
+                        Logger.Info("Turning on the entry lights, door has been locked");
                         Entities.Light.EntryLights.TurnOn();
                     }
                 });
 
             Notifications.OnAction(UnlockDoorActionName).Subscribe(s =>
             {
+                Logger.Info("Front door notification unlock action pressed, unlocking the door...");
                 Services.Lock.Unlock(ServiceTarget.FromEntity(Entities.Lock.FrontDoor.EntityId));
             });
 
             Notifications.OnAction(LockDoorActionName).Subscribe(s =>
             {
+                Logger.Info("Front door notification lock action pressed, locking the door...");
                 Services.Lock.Lock(ServiceTarget.FromEntity(Entities.Lock.FrontDoor.EntityId));
 
                 Notifications.ClearPushNotification("DoorUnlocked");

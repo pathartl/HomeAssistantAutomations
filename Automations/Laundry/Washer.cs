@@ -24,6 +24,8 @@ namespace NetDaemonApps.Automations.Laundry
                 {
                     Notifications.ClearPushNotification("WasherComplete");
 
+                    Logger.Info("Washing machine complete, sending notification...");
+
                     Notifications.SendPushNotification(new PushNotification()
                     {
                         Title = "Washing Machine Done!",
@@ -43,6 +45,8 @@ namespace NetDaemonApps.Automations.Laundry
                 .Subscribe(e =>
                 {
                     Notifications.ClearPushNotification("WasherComplete");
+
+                    Logger.Info("Clothes in the washing machine has been sitting for an hour, sending notification...");
 
                     Notifications.SendPushNotification(new PushNotification()
                     {

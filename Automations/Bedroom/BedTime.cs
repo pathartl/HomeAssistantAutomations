@@ -22,6 +22,8 @@ namespace NetDaemonApps.Automations.Bedroom
             Entities.MediaPlayer.MasterBathSpeaker.StateAllChanges()
                 .Subscribe(async s =>
                 {
+                    Logger.Info("Master bath speaker state changed to {State}", s.Entity.Attributes?.AppName);
+
                     if (s.Entity.Attributes?.AppName == "Relaxing Sounds")
                     {
                         Entities.Light.LivingRoomLightsGroup.TurnOff();

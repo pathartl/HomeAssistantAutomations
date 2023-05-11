@@ -36,10 +36,12 @@ namespace NetDaemonApps.Automations.Downstairs
 
             if (kitchenLightsAtMax && officeLightsAtMax)
             {
+                Logger.Info("All kitchen lights are set to max, turning on the overhead lights...");
                 Entities.Switch.KitchenOverheadLights.TurnOn();
             }
             else
             {
+                Logger.Info("Kitchen lights are not at max, turning off the overhead lights...");
                 Entities.Switch.KitchenOverheadLights.TurnOff();
             }
         }

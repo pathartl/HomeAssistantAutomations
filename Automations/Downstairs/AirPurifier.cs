@@ -17,17 +17,22 @@ namespace NetDaemonApps.Automations.Downstairs
         {
             Entities.MediaPlayer.LivingRoomTv
                 .StateAllChanges()
+                .Where(e => e.New?.State != e.Old?.State)
                 .Subscribe(s =>
                 {
+                    Logger.Info("Living room TV state changed to {State}", s.New?.State);
+
                     switch (s.New?.State)
                     {
                         case "playing":
+                            Logger.Info("Turning off air purifier");
                             Entities.Fan.AirPurifier.TurnOff();
                             break;
 
                         case "idle":
                         case "paused":
                         case "off":
+                            Logger.Info("Turning on air purifier");
                             Entities.Fan.AirPurifier.TurnOn();
                             Entities.Fan.AirPurifier.SetPresetMode("auto");
                             break;

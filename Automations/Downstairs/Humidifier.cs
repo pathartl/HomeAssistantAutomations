@@ -24,6 +24,8 @@ namespace NetDaemonApps.Automations.Downstairs
                 {
                     var random = new Random();
 
+                    Logger.Info("Humidifier tank is empty, sending notification...");
+
                     Notifications.SendPushNotification(new PushNotification()
                     {
                         Title = "Downstairs Humidifier Empty!",

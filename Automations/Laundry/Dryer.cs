@@ -32,6 +32,8 @@ namespace NetDaemonApps.Automations.Laundry
                         {
                             Notifications.ClearPushNotification("DryerComplete");
 
+                            Logger.Info("Dryer done, sending notification...");
+
                             Notifications.SendPushNotification(new PushNotification()
                             {
                                 Title = "Dryer Done!",
