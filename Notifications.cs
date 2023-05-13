@@ -1,5 +1,7 @@
-﻿using NetDaemonApps.Models;
+﻿using HomeAssistantGenerated;
+using NetDaemonApps.Models;
 using System.Linq;
+using System.Reactive;
 using System.Text.Json.Serialization;
 
 namespace NetDaemonApps
@@ -15,6 +17,8 @@ namespace NetDaemonApps
 
     public class Notifications
     {
+        private static NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+
         private IHaContext Context { get; set; }
         private Config Config { get; set; }
 
@@ -39,6 +43,8 @@ namespace NetDaemonApps
 
             foreach (var service in subscription.Services)
             {
+                Logger.Info("Sending notification to {Service} | Title: {NotificationTitle} | Message: {NotificationMessage}", service, notification.Title, notification.Message);
+
                 Context.CallService("notify", service, null, notification);
             }
         }
@@ -47,6 +53,8 @@ namespace NetDaemonApps
         {
             foreach (var service in services)
             {
+                Logger.Info("Sending notification to {Service} | Title: {NotificationTitle} | Message: {NotificationMessage}", service, notification.Title, notification.Message);
+
                 Context.CallService("notify", service, null, notification);
             }
         }
@@ -58,6 +66,8 @@ namespace NetDaemonApps
                 Tag = tag,
             };
 
+            Logger.Info("Clearing notification for services {Services} | Tag: {NotificationTag}", String.Join(", ", services), data.Tag);
+
             SendPushNotification(new PushNotification()
             {
                 Message = "clear_notification",
@@ -67,6 +77,8 @@ namespace NetDaemonApps
 
         public IObservable<Event> OnAction(string action)
         {
+            Logger.Info("Notification action triggered | Action: {Action}", action);
+
             return Context.Events
                 .Filter<NotificationActionEvent>("mobile_app_notification_action")
                 .Where(e => e.Data != null && e.Data.Action == action);
