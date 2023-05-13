@@ -22,6 +22,14 @@ namespace NetDaemonApps.Automations.Garage
                 {
                     ScheduleOffIn10Minutes();
                 });
+
+            Entities.Cover.GarageDoor
+                .StateChanges()
+                .Where(s => s.New?.State == "open")
+                .Subscribe(s =>
+                {
+                    Entities.Switch.WallMountedSwitch.TurnOn();
+                });
         }
 
         private void ScheduleOffIn10Minutes()
